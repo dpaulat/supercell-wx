@@ -1,4 +1,5 @@
 #include <scwx/qt/gl/draw/placefile_lines.hpp>
+#include <scwx/qt/gl/draw/placefile_packed_vertex.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/tooltip.hpp>
@@ -21,10 +22,6 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr std::size_t kVerticesPerTriangle  = 3;
 static constexpr std::size_t kVerticesPerRectangle = kVerticesPerTriangle * 2;
-static constexpr std::size_t kPointsPerVertex      = 9;
-
-// Threshold, start time, end time
-static constexpr std::size_t kIntegersPerVertex_ = 3;
 
 static const boost::gil::rgba8_pixel_t kBlack_ {0, 0, 0, 255};
 
@@ -44,11 +41,7 @@ public:
    };
 
    explicit Impl(const std::shared_ptr<GlContext>& context) :
-       context_ {context},
-       shaderProgram_ {nullptr},
-       vao_ {GL_INVALID_INDEX},
-       vbo_ {GL_INVALID_INDEX},
-       numVertices_ {0}
+       context_ {context}, shaderProgram_ {nullptr}, numVertices_ {0}
    {
    }
 
@@ -80,10 +73,8 @@ public:
    std::size_t currentNumLines_ {};
    std::size_t newNumLines_ {};
 
-   std::vector<float> currentLinesBuffer_ {};
-   std::vector<GLint> currentIntegerBuffer_ {};
-   std::vector<float> newLinesBuffer_ {};
-   std::vector<GLint> newIntegerBuffer_ {};
+   SharedBuffer<PackedLineVertex> currentLinesBuffer_ {};
+   std::vector<PackedLineVertex>  newLinesBuffer_ {};
 
    std::vector<LineHoverEntry> currentHoverLines_ {};
    std::vector<LineHoverEntry> newHoverLines_ {};
@@ -96,8 +87,8 @@ public:
    GLint uMapDistanceLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
    GLint uSelectedTimeLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
 
-   GLuint                vao_;
-   std::array<GLuint, 2> vbo_;
+   GLuint vao_ {GL_INVALID_INDEX};
+   GLuint vbo_ {GL_INVALID_INDEX};
 
    GLsizei numVertices_;
 };
@@ -139,69 +130,74 @@ void PlacefileLines::Initialize()
       p->shaderProgram_->GetUniformLocation("uSelectedTime");
 
    glGenVertexArrays(1, &p->vao_);
-   glGenBuffers(2, p->vbo_.data());
+   glGenBuffers(1, &p->vbo_);
 
    glBindVertexArray(p->vao_);
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
+   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
    glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
 
    // NOLINTBEGIN(modernize-use-nullptr)
    // NOLINTBEGIN(performance-no-int-to-ptr)
    // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
 
+   constexpr GLsizei kStride = sizeof(PackedLineVertex);
+
    // aLatLong
-   glVertexAttribPointer(0,
-                         2,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         static_cast<void*>(0));
+   glVertexAttribPointer(
+      0,
+      2,
+      GL_FLOAT,
+      GL_FALSE,
+      kStride,
+      reinterpret_cast<void*>(offsetof(PackedLineVertex, latitude_)));
    glEnableVertexAttribArray(0);
 
    // aXYOffset
-   glVertexAttribPointer(1,
-                         2,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(2 * sizeof(float)));
+   glVertexAttribPointer(
+      1,
+      2,
+      GL_HALF_FLOAT,
+      GL_FALSE,
+      kStride,
+      reinterpret_cast<void*>(offsetof(PackedLineVertex, xOffsetHalf_)));
    glEnableVertexAttribArray(1);
 
    // aModulate
-   glVertexAttribPointer(3,
-                         4,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(4 * sizeof(float)));
+   glVertexAttribPointer(
+      3,
+      4,
+      GL_UNSIGNED_BYTE,
+      GL_TRUE,
+      kStride,
+      reinterpret_cast<void*>(offsetof(PackedLineVertex, rgba_)));
    glEnableVertexAttribArray(3);
 
    // aAngle
-   glVertexAttribPointer(4,
-                         1,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(8 * sizeof(float)));
+   glVertexAttribPointer(
+      4,
+      1,
+      GL_FLOAT,
+      GL_FALSE,
+      kStride,
+      reinterpret_cast<void*>(offsetof(PackedLineVertex, angle_)));
    glEnableVertexAttribArray(4);
 
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
-   glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
-
    // aThreshold
-   glVertexAttribIPointer(5, //
-                          1,
-                          GL_INT,
-                          kIntegersPerVertex_ * sizeof(GLint),
-                          static_cast<void*>(0));
+   glVertexAttribIPointer(
+      5, //
+      1,
+      GL_SHORT,
+      kStride,
+      reinterpret_cast<void*>(offsetof(PackedLineVertex, threshold_)));
    glEnableVertexAttribArray(5);
 
    // aTimeRange
-   glVertexAttribIPointer(6, //
-                          2,
-                          GL_INT,
-                          kIntegersPerVertex_ * sizeof(GLint),
-                          reinterpret_cast<void*>(1 * sizeof(GLint)));
+   glVertexAttribIPointer(
+      6, //
+      2,
+      GL_INT,
+      kStride,
+      reinterpret_cast<void*>(offsetof(PackedLineVertex, startTime_)));
    glEnableVertexAttribArray(6);
 
    // aDisplayed
@@ -261,12 +257,11 @@ void PlacefileLines::Render(
 void PlacefileLines::Deinitialize()
 {
    glDeleteVertexArrays(1, &p->vao_);
-   glDeleteBuffers(2, p->vbo_.data());
+   glDeleteBuffers(1, &p->vbo_);
 
    std::unique_lock lock {p->lineMutex_};
 
-   p->currentLinesBuffer_.clear();
-   p->currentIntegerBuffer_.clear();
+   p->currentLinesBuffer_.reset();
    p->currentHoverLines_.clear();
 }
 
@@ -274,7 +269,6 @@ void PlacefileLines::StartLines()
 {
    // Clear the new buffers
    p->newLinesBuffer_.clear();
-   p->newIntegerBuffer_.clear();
    p->newHoverLines_.clear();
 
    p->newNumLines_ = 0u;
@@ -295,13 +289,11 @@ void PlacefileLines::FinishLines()
    std::unique_lock lock {p->lineMutex_};
 
    // Swap buffers
-   p->currentLinesBuffer_.swap(p->newLinesBuffer_);
-   p->currentIntegerBuffer_.swap(p->newIntegerBuffer_);
+   p->currentLinesBuffer_ = InternBuffer(std::move(p->newLinesBuffer_));
    p->currentHoverLines_.swap(p->newHoverLines_);
 
    // Clear the new buffers
    p->newLinesBuffer_.clear();
-   p->newIntegerBuffer_.clear();
    p->newHoverLines_.clear();
 
    // Update the number of lines
@@ -409,42 +401,39 @@ void PlacefileLines::Impl::BufferLine(
    const float ty = +hw;
    const float by = -hw;
 
-   // Modulate color
-   const float mc0 = color[0] / 255.0f;
-   const float mc1 = color[1] / 255.0f;
-   const float mc2 = color[2] / 255.0f;
-   const float mc3 = color[3] / 255.0f;
+   // Packed vertex attributes
+   const std::uint16_t lxHalf         = FloatToHalfBits(lx);
+   const std::uint16_t rxHalf         = FloatToHalfBits(rx);
+   const std::uint16_t tyHalf         = FloatToHalfBits(ty);
+   const std::uint16_t byHalf         = FloatToHalfBits(by);
+   const std::int16_t  thresholdShort = ClampThreshold(threshold);
 
-   // Update buffers
+   const auto vertex =
+      [&](float lat, float lon, std::uint16_t xHalf, std::uint16_t yHalf)
+   {
+      return PackedLineVertex {
+         .latitude_    = lat,
+         .longitude_   = lon,
+         .xOffsetHalf_ = xHalf,
+         .yOffsetHalf_ = yHalf,
+         .rgba_        = {color[0], color[1], color[2], color[3]},
+         .angle_       = a,
+         .threshold_   = thresholdShort,
+         .padding_     = 0,
+         .startTime_   = startTime,
+         .endTime_     = endTime};
+   };
+
+   // Update buffer
    newLinesBuffer_.insert(newLinesBuffer_.end(),
                           {
-                             // Line
-                             lat1, lon1, lx, by, mc0, mc1, mc2, mc3, a, // BL
-                             lat2, lon2, lx, ty, mc0, mc1, mc2, mc3, a, // TL
-                             lat1, lon1, rx, by, mc0, mc1, mc2, mc3, a, // BR
-                             lat1, lon1, rx, by, mc0, mc1, mc2, mc3, a, // BR
-                             lat2, lon2, rx, ty, mc0, mc1, mc2, mc3, a, // TR
-                             lat2, lon2, lx, ty, mc0, mc1, mc2, mc3, a  // TL
+                             vertex(lat1, lon1, lxHalf, byHalf), // BL
+                             vertex(lat2, lon2, lxHalf, tyHalf), // TL
+                             vertex(lat1, lon1, rxHalf, byHalf), // BR
+                             vertex(lat1, lon1, rxHalf, byHalf), // BR
+                             vertex(lat2, lon2, rxHalf, tyHalf), // TR
+                             vertex(lat2, lon2, lxHalf, tyHalf)  // TL
                           });
-   newIntegerBuffer_.insert(newIntegerBuffer_.end(),
-                            {threshold,
-                             startTime,
-                             endTime,
-                             threshold,
-                             startTime,
-                             endTime,
-                             threshold,
-                             startTime,
-                             endTime,
-                             threshold,
-                             startTime,
-                             endTime,
-                             threshold,
-                             startTime,
-                             endTime,
-                             threshold,
-                             startTime,
-                             endTime});
 
    if (bufferHover && !di->hoverText_.empty())
    {
@@ -474,20 +463,19 @@ void PlacefileLines::Impl::Update()
    if (dirty_)
    {
       // Buffer lines data
-      glBindBuffer(GL_ARRAY_BUFFER, vbo_[0]);
-      glBufferData(
-         GL_ARRAY_BUFFER,
-         static_cast<GLsizeiptr>(sizeof(float) * currentLinesBuffer_.size()),
-         currentLinesBuffer_.data(),
-         GL_DYNAMIC_DRAW);
-
-      // Buffer threshold data
-      glBindBuffer(GL_ARRAY_BUFFER, vbo_[1]);
-      glBufferData(
-         GL_ARRAY_BUFFER,
-         static_cast<GLsizeiptr>(sizeof(GLint) * currentIntegerBuffer_.size()),
-         currentIntegerBuffer_.data(),
-         GL_DYNAMIC_DRAW);
+      glBindBuffer(GL_ARRAY_BUFFER, vbo_);
+      if (currentLinesBuffer_ != nullptr && !currentLinesBuffer_->empty())
+      {
+         glBufferData(GL_ARRAY_BUFFER,
+                      static_cast<GLsizeiptr>(sizeof(PackedLineVertex) *
+                                              currentLinesBuffer_->size()),
+                      currentLinesBuffer_->data(),
+                      GL_DYNAMIC_DRAW);
+      }
+      else
+      {
+         glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
+      }
    }
 
    dirty_ = false;

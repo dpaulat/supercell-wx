@@ -1,9 +1,11 @@
+#include <scwx/qt/gl/draw/placefile_packed_vertex.hpp>
 #include <scwx/qt/gl/draw/placefile_polygons.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
 #include <mutex>
+#include <span>
 
 #include <boost/container/stable_vector.hpp>
 
@@ -30,10 +32,6 @@ static const std::string logPrefix_ = "scwx::qt::gl::draw::placefile_polygons";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr std::size_t kVerticesPerTriangle = 3;
-static constexpr std::size_t kPointsPerVertex     = 8;
-
-// Threshold, start time, end time
-static constexpr std::size_t kIntegersPerVertex_ = 3;
 
 static constexpr std::size_t kTessVertexScreenX_ = 0;
 static constexpr std::size_t kTessVertexScreenY_ = 1;
@@ -58,8 +56,6 @@ public:
        uMapScreenCoordLocation_(GL_INVALID_INDEX),
        uMapDistanceLocation_(GL_INVALID_INDEX),
        uSelectedTimeLocation_(GL_INVALID_INDEX),
-       vao_ {GL_INVALID_INDEX},
-       vbo_ {GL_INVALID_INDEX},
        numVertices_ {0}
    {
       tessellator_ = gluNewTess();
@@ -104,11 +100,9 @@ public:
 
    boost::container::stable_vector<TessVertexArray> tessCombineBuffer_ {};
 
-   std::mutex           bufferMutex_ {};
-   std::vector<GLfloat> currentBuffer_ {};
-   std::vector<GLint>   currentIntegerBuffer_ {};
-   std::vector<GLfloat> newBuffer_ {};
-   std::vector<GLint>   newIntegerBuffer_ {};
+   std::mutex                     bufferMutex_ {};
+   SharedBuffer<PackedFillVertex> currentBuffer_ {};
+   std::vector<PackedFillVertex>  newBuffer_ {};
 
    GLUtesselator* tessellator_;
 
@@ -119,8 +113,8 @@ public:
    GLint                          uMapDistanceLocation_;
    GLint                          uSelectedTimeLocation_;
 
-   GLuint                vao_;
-   std::array<GLuint, 2> vbo_;
+   GLuint vao_ {GL_INVALID_INDEX};
+   GLuint vbo_ {GL_INVALID_INDEX};
 
    GLsizei numVertices_;
 
@@ -168,60 +162,64 @@ void PlacefilePolygons::Initialize()
       p->shaderProgram_->GetUniformLocation("uSelectedTime");
 
    glGenVertexArrays(1, &p->vao_);
-   glGenBuffers(2, p->vbo_.data());
+   glGenBuffers(1, &p->vbo_);
 
    glBindVertexArray(p->vao_);
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
+   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
    glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
 
    // NOLINTBEGIN(modernize-use-nullptr)
    // NOLINTBEGIN(performance-no-int-to-ptr)
    // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
 
+   constexpr GLsizei kStride = sizeof(PackedFillVertex);
+
    // aScreenCoord
-   glVertexAttribPointer(0,
-                         2,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         static_cast<void*>(0));
+   glVertexAttribPointer(
+      0,
+      2,
+      GL_FLOAT,
+      GL_FALSE,
+      kStride,
+      reinterpret_cast<void*>(offsetof(PackedFillVertex, screenX_)));
    glEnableVertexAttribArray(0);
 
    // aXYOffset
-   glVertexAttribPointer(1,
-                         2,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(2 * sizeof(float)));
+   glVertexAttribPointer(
+      1,
+      2,
+      GL_HALF_FLOAT,
+      GL_FALSE,
+      kStride,
+      reinterpret_cast<void*>(offsetof(PackedFillVertex, xOffsetHalf_)));
    glEnableVertexAttribArray(1);
 
    // aColor
-   glVertexAttribPointer(2,
-                         4,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(4 * sizeof(float)));
+   glVertexAttribPointer(
+      2,
+      4,
+      GL_UNSIGNED_BYTE,
+      GL_TRUE,
+      kStride,
+      reinterpret_cast<void*>(offsetof(PackedFillVertex, rgba_)));
    glEnableVertexAttribArray(2);
 
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
-   glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
-
    // aThreshold
-   glVertexAttribIPointer(3, //
-                          1,
-                          GL_INT,
-                          kIntegersPerVertex_ * sizeof(GLint),
-                          static_cast<void*>(0));
+   glVertexAttribIPointer(
+      3, //
+      1,
+      GL_SHORT,
+      kStride,
+      reinterpret_cast<void*>(offsetof(PackedFillVertex, threshold_)));
    glEnableVertexAttribArray(3);
 
    // aTimeRange
-   glVertexAttribIPointer(4, //
-                          2,
-                          GL_INT,
-                          kIntegersPerVertex_ * sizeof(GLint),
-                          reinterpret_cast<void*>(1 * sizeof(GLint)));
+   glVertexAttribIPointer(
+      4, //
+      2,
+      GL_INT,
+      kStride,
+      reinterpret_cast<void*>(offsetof(PackedFillVertex, startTime_)));
    glEnableVertexAttribArray(4);
 
    // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
@@ -234,7 +232,13 @@ void PlacefilePolygons::Initialize()
 void PlacefilePolygons::Render(
    const QMapLibre::CustomLayerRenderParameters& params)
 {
-   if (!p->currentBuffer_.empty())
+   bool hasGeometry = false;
+   {
+      const std::unique_lock lock {p->bufferMutex_};
+      hasGeometry = p->currentBuffer_ != nullptr && !p->currentBuffer_->empty();
+   }
+
+   if (hasGeometry)
    {
       glBindVertexArray(p->vao_);
 
@@ -276,20 +280,18 @@ void PlacefilePolygons::Render(
 void PlacefilePolygons::Deinitialize()
 {
    glDeleteVertexArrays(1, &p->vao_);
-   glDeleteBuffers(2, p->vbo_.data());
+   glDeleteBuffers(1, &p->vbo_);
 
-   std::unique_lock lock {p->bufferMutex_};
+   const std::unique_lock lock {p->bufferMutex_};
 
    // Clear the current buffers
-   p->currentBuffer_.clear();
-   p->currentIntegerBuffer_.clear();
+   p->currentBuffer_.reset();
 }
 
 void PlacefilePolygons::StartPolygons()
 {
    // Clear the new buffers
    p->newBuffer_.clear();
-   p->newIntegerBuffer_.clear();
 }
 
 void PlacefilePolygons::AddPolygon(
@@ -303,15 +305,13 @@ void PlacefilePolygons::AddPolygon(
 
 void PlacefilePolygons::FinishPolygons()
 {
-   std::unique_lock lock {p->bufferMutex_};
+   const std::unique_lock lock {p->bufferMutex_};
 
    // Swap buffers
-   p->currentBuffer_.swap(p->newBuffer_);
-   p->currentIntegerBuffer_.swap(p->newIntegerBuffer_);
+   p->currentBuffer_ = InternBuffer(std::move(p->newBuffer_));
 
    // Clear the new buffers
    p->newBuffer_.clear();
-   p->newIntegerBuffer_.clear();
 
    // Mark the draw item dirty
    p->dirty_ = true;
@@ -324,23 +324,21 @@ void PlacefilePolygons::Impl::Update()
       std::unique_lock lock {bufferMutex_};
 
       // Buffer vertex data
-      glBindBuffer(GL_ARRAY_BUFFER, vbo_[0]);
-      glBufferData(
-         GL_ARRAY_BUFFER,
-         static_cast<GLsizeiptr>(sizeof(GLfloat) * currentBuffer_.size()),
-         currentBuffer_.data(),
-         GL_DYNAMIC_DRAW);
-
-      // Buffer threshold data
-      glBindBuffer(GL_ARRAY_BUFFER, vbo_[1]);
-      glBufferData(
-         GL_ARRAY_BUFFER,
-         static_cast<GLsizeiptr>(sizeof(GLint) * currentIntegerBuffer_.size()),
-         currentIntegerBuffer_.data(),
-         GL_DYNAMIC_DRAW);
-
-      numVertices_ =
-         static_cast<GLsizei>(currentBuffer_.size() / kPointsPerVertex);
+      glBindBuffer(GL_ARRAY_BUFFER, vbo_);
+      if (currentBuffer_ != nullptr && !currentBuffer_->empty())
+      {
+         glBufferData(GL_ARRAY_BUFFER,
+                      static_cast<GLsizeiptr>(sizeof(PackedFillVertex) *
+                                              currentBuffer_->size()),
+                      currentBuffer_->data(),
+                      GL_DYNAMIC_DRAW);
+         numVertices_ = static_cast<GLsizei>(currentBuffer_->size());
+      }
+      else
+      {
+         glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
+         numVertices_ = 0;
+      }
 
       dirty_ = false;
    }
@@ -412,11 +410,8 @@ void PlacefilePolygons::Impl::Tessellate(
    tessCombineBuffer_.clear();
 
    // Remove extra vertices that don't correspond to a full triangle
-   while (newBuffer_.size() % kVerticesPerTriangle != 0)
-   {
-      newBuffer_.pop_back();
-      newIntegerBuffer_.pop_back();
-   }
+   newBuffer_.resize(newBuffer_.size() -
+                     (newBuffer_.size() % kVerticesPerTriangle));
 }
 
 void PlacefilePolygons::Impl::TessellateCombineCallback(GLdouble coords[3],
@@ -463,23 +458,29 @@ void PlacefilePolygons::Impl::TessellateCombineCallback(GLdouble coords[3],
 void PlacefilePolygons::Impl::TessellateVertexCallback(void* vertexData,
                                                        void* polygonData)
 {
-   Impl*     self = static_cast<Impl*>(polygonData);
-   GLdouble* data = static_cast<GLdouble*>(vertexData);
+   Impl* self = static_cast<Impl*>(polygonData);
+
+   // The tessellator hands back the vertex data passed to gluTessVertex, which
+   // is always a TessVertexArray
+   const std::span<const GLdouble, kTessVertexSize_> data {
+      static_cast<const GLdouble*>(vertexData), kTessVertexSize_};
 
    // Buffer vertex
-   self->newBuffer_.insert(self->newBuffer_.end(),
-                           {static_cast<float>(data[kTessVertexScreenX_]),
-                            static_cast<float>(data[kTessVertexScreenY_]),
-                            static_cast<float>(data[kTessVertexXOffset_]),
-                            static_cast<float>(data[kTessVertexYOffset_]),
-                            static_cast<float>(data[kTessVertexR_]),
-                            static_cast<float>(data[kTessVertexG_]),
-                            static_cast<float>(data[kTessVertexB_]),
-                            static_cast<float>(data[kTessVertexA_])});
-   self->newIntegerBuffer_.insert(self->newIntegerBuffer_.end(),
-                                  {self->currentThreshold_,
-                                   self->currentStartTime_,
-                                   self->currentEndTime_});
+   self->newBuffer_.push_back(PackedFillVertex {
+      .screenX_ = static_cast<float>(data[kTessVertexScreenX_]),
+      .screenY_ = static_cast<float>(data[kTessVertexScreenY_]),
+      .xOffsetHalf_ =
+         FloatToHalfBits(static_cast<float>(data[kTessVertexXOffset_])),
+      .yOffsetHalf_ =
+         FloatToHalfBits(static_cast<float>(data[kTessVertexYOffset_])),
+      .rgba_      = {NormalizedByte(data[kTessVertexR_]),
+                     NormalizedByte(data[kTessVertexG_]),
+                     NormalizedByte(data[kTessVertexB_]),
+                     NormalizedByte(data[kTessVertexA_])},
+      .threshold_ = ClampThreshold(self->currentThreshold_),
+      .padding_   = 0,
+      .startTime_ = self->currentStartTime_,
+      .endTime_   = self->currentEndTime_});
 }
 
 void PlacefilePolygons::Impl::TessellateErrorCallback(GLenum errorCode)
