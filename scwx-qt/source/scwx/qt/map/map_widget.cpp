@@ -205,7 +205,7 @@ QString FormatMeasurementDistance(double meters)
       settings::UnitSettings::Instance().distance_units().GetValue());
    const double display = meters * scwx::common::kKilometersPerMeter *
                           types::GetDistanceUnitsScale(units);
-   std::string abbrev = types::GetDistanceUnitsAbbreviation(units);
+   std::string  abbrev  = types::GetDistanceUnitsAbbreviation(units);
    if (abbrev.empty())
    {
       abbrev = "user";
@@ -422,8 +422,8 @@ public:
    void                  UpdateMeasureLabels();
    void                  UpdateColorTable(const std::string& colorPalette);
    void                  UpdateColorTable(
-                       const std::string&                             colorPalette,
-                       const std::shared_ptr<view::RadarProductView>& radarProductView);
+      const std::string&                             colorPalette,
+      const std::shared_ptr<view::RadarProductView>& radarProductView);
    void UpdateLoadedStyle();
    bool UpdateStoredMapParameters();
    void CheckLevel3Availability();
@@ -3325,10 +3325,8 @@ void MapWidgetImpl::EnsureBasemapTexture()
 
    basemapSnapshotValid_ = false;
    delete basemapTexture_;
-   basemapTexture_ = rhi->newTexture(colorTexture->format(),
-                                     size,
-                                     1,
-                                     QRhiTexture::UsedAsTransferSource);
+   basemapTexture_ = rhi->newTexture(
+      colorTexture->format(), size, 1, QRhiTexture::UsedAsTransferSource);
    if (basemapTexture_ == nullptr || !basemapTexture_->create())
    {
       delete basemapTexture_;
@@ -3852,28 +3850,27 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
       // grab() renders a new offscreen frame, which Qt ignores while this
       // frame is still active (isPainting_ is set until render() returns).
       // Run the capture after render() has finished, like the smoke capture.
-      QTimer::singleShot(
-         0,
-         widget_,
-         [this, currentCaptureType]()
-         {
-            switch (currentCaptureType)
-            {
-            case types::CaptureType::Copy:
-               ScreenCaptureCopy();
-               break;
+      QTimer::singleShot(0,
+                         widget_,
+                         [this, currentCaptureType]()
+                         {
+                            switch (currentCaptureType)
+                            {
+                            case types::CaptureType::Copy:
+                               ScreenCaptureCopy();
+                               break;
 
-            case types::CaptureType::SaveImage:
-               ScreenCaptureSaveImage();
-               break;
+                            case types::CaptureType::SaveImage:
+                               ScreenCaptureSaveImage();
+                               break;
 
-            default:
-               break;
-            }
+                            default:
+                               break;
+                            }
 
-            context_->set_screen_capture(false);
-            widget_->update();
-         });
+                            context_->set_screen_capture(false);
+                            widget_->update();
+                         });
    }
 
    if (!smokeCaptureQueued_)

@@ -88,7 +88,7 @@ public:
    // Multisampled overlay target. The pane color texture is the resolve
    // target, so the basemap is first copied to baseCopy_ (a texture cannot be
    // sampled while it is a resolve attachment of the same pass).
-   int                      requestedSamples_ {1};
+   int requestedSamples_ {1};
    // Requested sample count whose MSAA target failed to be created; it is not
    // retried (SetSampleCount is called every frame) until the request changes.
    int                      failedSamples_ {0};
@@ -516,7 +516,7 @@ void MapOverlayRenderer::SetSampleCount(int sampleCount)
    {
       p = std::make_unique<Impl>();
    }
-   const int requested = std::max(1, sampleCount);
+   const int requested  = std::max(1, sampleCount);
    p->requestedSamples_ = (requested == p->failedSamples_) ? 1 : requested;
 }
 

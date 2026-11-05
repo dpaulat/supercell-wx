@@ -232,7 +232,7 @@ private:
    // from this list takes over.
    std::unordered_map<awips::Phenomenon, std::vector<AlertLayer*>>
               registeredLayers_ {};
-   std::mutex                                         geometryBuildersMutex_ {};
+   std::mutex geometryBuildersMutex_ {};
 
    boost::asio::thread_pool  refreshThreadPool_ {1u};
    std::atomic<bool>         refreshEnabled_ {true};
