@@ -4,3 +4,6 @@
 
 # Ignore the CMake presets file in this directory
 CMakePresets.json
+
+# ObjC++ — project .clang-format is Language: Cpp only
+*.mm
