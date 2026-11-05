@@ -128,6 +128,23 @@ public:
       const std::string&                                 filename,
       const std::shared_ptr<request::NexradFileRequest>& request = nullptr);
 
+   /**
+    * @brief Gets a previously loaded radar product record from the cache.
+    *
+    * Does not trigger a network load. Records assembled from live Level 2
+    * chunks may be absent, or may lack original Archive II file bytes.
+    *
+    * @param [in] group Radar product group
+    * @param [in] product Radar product name (Level 3)
+    * @param [in] time Radar product time. Default is the latest cached record.
+    *
+    * @return Cached radar product record, or nullptr if none is loaded
+    */
+   std::shared_ptr<types::RadarProductRecord>
+   GetRadarProductRecord(common::RadarProductGroup             group,
+                         const std::string&                    product = {},
+                         std::chrono::system_clock::time_point time    = {});
+
    common::Level3ProductCategoryMap GetAvailableLevel3Categories();
    std::vector<std::string>         GetLevel3Products();
 

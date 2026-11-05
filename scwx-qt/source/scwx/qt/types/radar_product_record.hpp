@@ -38,6 +38,14 @@ public:
    std::string                           site_id() const;
    std::chrono::system_clock::time_point time() const;
 
+   /**
+    * @brief Filename suitable for saving the original NEXRAD product.
+    *
+    * Uses the source object name when available, otherwise a name derived from
+    * the radar site, product, and time. Gzip payloads receive a .gz suffix.
+    */
+   [[nodiscard]] std::string suggested_filename() const;
+
    void set_time(std::chrono::system_clock::time_point time);
 
    static std::shared_ptr<RadarProductRecord>

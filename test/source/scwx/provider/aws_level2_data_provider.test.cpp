@@ -44,6 +44,9 @@ TEST(AwsLevel2DataProvider, LoadObjectByKey)
    auto file = provider.LoadObjectByKey(key);
 
    EXPECT_NE(file, nullptr);
+   ASSERT_NE(file, nullptr);
+   EXPECT_EQ(file->filename(), "KLSX20220421_160055_V06");
+   EXPECT_TRUE(file->has_file_data());
 }
 
 TEST(AwsLevel2DataProvider, Prune)
