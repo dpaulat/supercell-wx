@@ -803,7 +803,7 @@ std::vector<std::size_t> GeoLines::Impl::ResolveJoins()
          const GeoLineDrawItem& di = *newLineList_[ref.line_];
          const std::uint64_t    otherEnd =
             ref.atEnd_ ? EndpointKey(di.latitude1_, di.longitude1_) :
-                            EndpointKey(di.latitude2_, di.longitude2_);
+                         EndpointKey(di.latitude2_, di.longitude2_);
 
          auto it = std::find_if(groups.begin(),
                                 groups.end(),

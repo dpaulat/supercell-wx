@@ -411,11 +411,11 @@ public:
    {
       return mapChangedOnce_ || mapStylePending_;
    }
-   void                  SelectNearestRadarSite(double                          latitude,
-                                                double                          longitude,
-                                                std::optional<types::RadarType> type);
-   void                  SetRadarSite(const std::string& radarSite,
-                                      bool               checkProductAvailability = false);
+   void SelectNearestRadarSite(double                          latitude,
+                               double                          longitude,
+                               std::optional<types::RadarType> type);
+   void SetRadarSite(const std::string& radarSite,
+                     bool               checkProductAvailability = false);
    [[nodiscard]] QPointF EraseCursorWidgetPosition() const;
    [[nodiscard]] int     EraseCursorRadiusPx(const QPointF& widgetPos) const;
    void                  UpdateAnnotationCursor();

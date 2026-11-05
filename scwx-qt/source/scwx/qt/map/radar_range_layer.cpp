@@ -31,8 +31,8 @@ BuildRangeCircle(float rangeKm, double latitude, double longitude)
    {
       const double azimuth = (360.0 * static_cast<double>(i)) /
                              static_cast<double>(kRangeCircleSegments_);
-      double pointLatitude {};
-      double pointLongitude {};
+      double       pointLatitude {};
+      double       pointLongitude {};
       geodesic.Direct(
          latitude, longitude, azimuth, meters, pointLatitude, pointLongitude);
       points.emplace_back(pointLatitude, pointLongitude);

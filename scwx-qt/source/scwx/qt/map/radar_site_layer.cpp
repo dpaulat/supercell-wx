@@ -165,8 +165,8 @@ void RadarSiteLayer::Impl::UpdateMapTransform(
 {
    mapScreenCoordLocation_ = util::maplibre::LatLongToScreenCoordinate(
       {params.latitude, params.longitude});
-   mapScale_ = std::pow(2.0, params.zoom) * mbgl::util::tileSize_D /
-               mbgl::util::DEGREES_MAX;
+   mapScale_      = std::pow(2.0, params.zoom) * mbgl::util::tileSize_D /
+                    mbgl::util::DEGREES_MAX;
    mapBearingCos_ = cosf(params.bearing * common::kDegreesToRadians);
    mapBearingSin_ = sinf(params.bearing * common::kDegreesToRadians);
    halfWidth_     = params.width * 0.5f;
@@ -328,7 +328,7 @@ void RadarSiteLayer::Impl::RenderRadarSite(
    const ImVec2      labelSize    = ImGui::CalcTextSize(label.c_str());
    const ImVec2&     framePadding = ImGui::GetStyle().FramePadding;
    const ImVec2      buttonSize {labelSize.x + framePadding.x * 2.0f,
-                            labelSize.y + framePadding.y * 2.0f};
+                                 labelSize.y + framePadding.y * 2.0f};
 
    ImGui::SetCursorScreenPos(
       ImVec2 {x - buttonSize.x * 0.5f, y - buttonSize.y * 0.5f});

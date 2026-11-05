@@ -121,8 +121,8 @@ void PlacefileText::Render(const QMapLibre::CustomLayerRenderParameters& params)
       // Update map screen coordinate and scale information
       p->mapScreenCoordLocation_ = util::maplibre::LatLongToScreenCoordinate(
          {params.latitude, params.longitude});
-      p->mapScale_ = std::pow(2.0, params.zoom) * mbgl::util::tileSize_D /
-                     mbgl::util::DEGREES_MAX;
+      p->mapScale_      = std::pow(2.0, params.zoom) * mbgl::util::tileSize_D /
+                          mbgl::util::DEGREES_MAX;
       p->mapBearingCos_ = cosf(params.bearing * common::kDegreesToRadians);
       p->mapBearingSin_ = sinf(params.bearing * common::kDegreesToRadians);
       p->halfWidth_     = params.width * 0.5f;

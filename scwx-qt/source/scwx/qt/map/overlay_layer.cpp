@@ -113,8 +113,8 @@ public:
    void UpdateImGuiState(const QMapLibre::CustomLayerRenderParameters& params);
    void UpdateSweepTimeString(const std::shared_ptr<MapContext>& mapContext);
    void
-        RenderImGuiOverlay(const std::shared_ptr<MapContext>&            mapContext,
-                           const QMapLibre::CustomLayerRenderParameters& params);
+   RenderImGuiOverlay(const std::shared_ptr<MapContext>&            mapContext,
+                      const QMapLibre::CustomLayerRenderParameters& params);
    void UpdateDrawItems(const std::shared_ptr<MapContext>& mapContext,
                         const QMapLibre::CustomLayerRenderParameters& params);
 
