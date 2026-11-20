@@ -5,5 +5,12 @@
   ],
   "conan": {
     "enabled": true
-  }
+  },
+  "packageRules": [
+    {
+      "description": "Use the Conan Center version API instead of GitHub config.yml. The default registry URL https://center2.conan.io/ is special-cased by Renovate to recipes/<pkg>/config.yml in conan-center-index, which drops old versions. That makes the current pin skipReason=invalid-value and autocloses update PRs (see #723). A trailing-dot FQDN is a different registry URL, so lookups go to /v2/conans/search, which still lists published versions.",
+      "matchDatasources": ["conan"],
+      "registryUrls": ["https://center2.conan.io."]
+    }
+  ]
 }
