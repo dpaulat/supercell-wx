@@ -25,4 +25,19 @@ TEST(ThemeTest, HasStyleArgument_MissingStyleFlag)
    EXPECT_FALSE(HasStyleArgument({"program", "--portable", "--help"}));
 }
 
+TEST(ThemeTest, FollowsSystemColorScheme_SystemStyles)
+{
+   EXPECT_TRUE(FollowsSystemColorScheme(types::UiStyle::Default));
+   EXPECT_TRUE(FollowsSystemColorScheme(types::UiStyle::Fusion));
+}
+
+TEST(ThemeTest, FollowsSystemColorScheme_FixedStyles)
+{
+   EXPECT_FALSE(FollowsSystemColorScheme(types::UiStyle::FusionLight));
+   EXPECT_FALSE(FollowsSystemColorScheme(types::UiStyle::FusionDark));
+   EXPECT_FALSE(FollowsSystemColorScheme(types::UiStyle::FusionDarker));
+   EXPECT_FALSE(FollowsSystemColorScheme(types::UiStyle::FusionCustom));
+   EXPECT_FALSE(FollowsSystemColorScheme(types::UiStyle::Unknown));
+}
+
 } // namespace scwx::qt::main::internal
