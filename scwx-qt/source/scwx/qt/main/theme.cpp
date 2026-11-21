@@ -27,10 +27,9 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static bool              hasStyleArgument_ {false};
 
 /** QStyleFactory key or empty if unknown (restore with setStyle(nullptr)). */
-static bool     startupStyleKeyKnown_ {false};
-static QString  startupStyleKey_;
-static bool     startupPaletteKnown_ {false};
-static QPalette startupPalette_;
+static bool    startupStyleKeyKnown_ {false};
+static QString startupStyleKey_;
+static bool    applyingTheme_ {false};
 
 bool internal::HasStyleArgument(const std::vector<std::string>& args)
 {
@@ -43,6 +42,14 @@ bool internal::HasStyleArgument(const std::vector<std::string>& args)
    }
 
    return false;
+}
+
+bool internal::FollowsSystemColorScheme(types::UiStyle uiStyle)
+{
+   return uiStyle != types::UiStyle::Unknown &&
+          uiStyle != types::UiStyle::FusionCustom &&
+          types::GetQtColorScheme(uiStyle) == Qt::ColorScheme::Unknown &&
+          !types::GetQtPaletteFile(uiStyle).has_value();
 }
 
 #if defined(_WIN32)
@@ -90,17 +97,6 @@ static void RestoreStartupStyle()
    }
 }
 
-static void CaptureStartupPaletteIfNeeded()
-{
-   if (startupPaletteKnown_)
-   {
-      return;
-   }
-
-   startupPalette_      = QApplication::palette();
-   startupPaletteKnown_ = true;
-}
-
 static void RefreshApplicationWidgets()
 {
    QPixmapCache::clear();
@@ -119,8 +115,13 @@ static void RefreshApplicationWidgets()
 
 static void ApplyThemeImpl()
 {
+   if (applyingTheme_)
+   {
+      return;
+   }
+   applyingTheme_ = true;
+
    CaptureStartupStyleIfNeeded();
-   CaptureStartupPaletteIfNeeded();
 
    const scwx::qt::settings::GeneralSettings& generalSettings =
       scwx::qt::settings::GeneralSettings::Instance();
@@ -192,27 +193,42 @@ static void ApplyThemeImpl()
    }
    else
    {
-      if (uiStyle == scwx::qt::types::UiStyle::Default && startupPaletteKnown_)
-      {
-         QApplication::setPalette(startupPalette_);
-      }
-      else if (uiStyle != scwx::qt::types::UiStyle::Default)
-      {
-         // Reset any palette loaded by a previous theme after the target
-         // style/color scheme is active. A default-constructed palette has an
-         // empty resolve mask, so Qt rebuilds from the current theme palette
-         // instead of keeping stale explicit colors.
-         QApplication::setPalette(QPalette {});
-      }
+      // Reset any palette loaded by a previous theme after the target
+      // style/color scheme is active. A default-constructed palette has an
+      // empty resolve mask, so Qt rebuilds from the current platform theme
+      // palette (tracking system light/dark changes) instead of keeping stale
+      // explicit colors.
+      QApplication::setPalette(QPalette {});
    }
 
    RefreshApplicationWidgets();
+
+   applyingTheme_ = false;
+}
+
+static void HandleSystemColorSchemeChanged(Qt::ColorScheme colorScheme)
+{
+   const auto uiStyle = scwx::qt::types::GetUiStyle(
+      scwx::qt::settings::GeneralSettings::Instance().theme().GetValue());
+
+   if (internal::FollowsSystemColorScheme(uiStyle))
+   {
+      logger_->debug("System color scheme changed ({}), reapplying theme",
+                     static_cast<int>(colorScheme));
+      ApplyThemeImpl();
+   }
 }
 
 void ConfigureThemeForStartup(const std::vector<std::string>& args)
 {
    hasStyleArgument_ = internal::HasStyleArgument(args);
    ApplyThemeImpl();
+
+   QObject::connect(QGuiApplication::styleHints(),
+                    &QStyleHints::colorSchemeChanged,
+                    qApp,
+                    &HandleSystemColorSchemeChanged,
+                    Qt::QueuedConnection);
 }
 
 void ApplyTheme()
